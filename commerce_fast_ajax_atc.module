@@ -1,0 +1,36 @@
+<?php
+
+/**
+ * Implements hook_form_FORM_ID_alter(): commerce_cart_add_to_cart_form
+ */
+function commerce_fast_ajax_atc_form_commerce_cart_add_to_cart_form_alter(&$form, &$form_state) {
+  $form['submit']['#attributes']['class'][] = 'use-ajax-submit';
+  $form['#submit'][] = 'commerce_fast_ajax_atc_add_to_cart_form_submit';
+  $form['#attached']['library'][] = array('system', 'jquery.form');
+  $form['#attached']['library'][] = array('system', 'drupal.ajax');
+}
+
+/**
+ * "Add to cart" button submit callback.
+ */
+function commerce_fast_ajax_atc_add_to_cart_form_submit($form, &$form_state){
+  $drupal_html_ids = &drupal_static('drupal_html_id');
+  unset($drupal_html_ids['block-commerce-cart-cart']);
+
+  $cart_block = block_load('commerce_cart', 'cart');
+  $cart_block_full = _block_render_blocks(array($cart_block));
+  $cart_block_build = _block_get_renderable_array($cart_block_full);
+  $cart_block_html = render($cart_block_build);
+
+  $commands = array(
+    '#type' => 'ajax',
+    '#commands' => array(
+      ajax_command_replace('#block-commerce-cart-cart', trim($cart_block_html)),
+    ),
+  );
+
+  drupal_alter('commerce_fast_ajax_atc_commands', $commands);
+  drupal_get_messages();
+  ajax_deliver($commands);
+  drupal_exit();
+}
