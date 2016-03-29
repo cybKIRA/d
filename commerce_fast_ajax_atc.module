@@ -36,7 +36,10 @@ function commerce_fast_ajax_atc_theme() {
  */
 function commerce_fast_ajax_atc_form_commerce_cart_add_to_cart_form_alter(&$form, &$form_state) {
   $form['submit']['#attributes']['class'][] = 'use-ajax-submit';
+
   $form['#submit'][] = 'commerce_fast_ajax_atc_add_to_cart_form_submit';
+  $form['#validate'][] = 'commerce_fast_ajax_atc_add_to_cart_form_validate';
+
   $form['#attached']['library'][] = array('system', 'jquery.form');
   $form['#attached']['library'][] = array('system', 'drupal.ajax');
 
@@ -46,10 +49,32 @@ function commerce_fast_ajax_atc_form_commerce_cart_add_to_cart_form_alter(&$form
 }
 
 /**
+ * "Add to cart" form validate callback.
+ */
+function commerce_fast_ajax_atc_add_to_cart_form_validate($form, &$form_state) {
+  if (!commerce_fast_ajax_atc_is_ajax()) {
+    return;
+  }
+
+  if ($form_errors = form_get_errors()) {
+    $result = array(
+      '#type' => 'ajax',
+      '#commands' => array(
+        ajax_command_alert(implode("\n\n", $form_errors)),
+      ),
+    );
+
+    drupal_get_messages();
+    ajax_deliver($result);
+    drupal_exit();
+  }
+}
+
+/**
  * "Add to cart" button submit callback.
  */
 function commerce_fast_ajax_atc_add_to_cart_form_submit($form, &$form_state) {
-  if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || $_SERVER['HTTP_X_REQUESTED_WITH'] != 'XMLHttpRequest') {
+  if (!commerce_fast_ajax_atc_is_ajax()) {
     return;
   }
 
@@ -85,4 +110,11 @@ function commerce_fast_ajax_atc_add_to_cart_form_submit($form, &$form_state) {
   drupal_get_messages();
   ajax_deliver($result);
   drupal_exit();
+}
+
+/**
+ * Return TRUE if request is AJAX.
+ */
+function commerce_fast_ajax_atc_is_ajax() {
+  return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] == 'XMLHttpRequest';
 }
